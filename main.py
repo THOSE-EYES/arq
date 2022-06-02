@@ -18,6 +18,7 @@ import threading
 import argparse
 
 from arq.connection.bdnoisyconnection import BidirectionalNoisyConnection
+from arq.connection.bsconnection import BinarySymmetricConnection
 from arq.transceiver import Transceiver
 from arq.data.basicdatasource import BasicDataSource as Source
 from arq.controllers.receivercontroller import ReceiverController
@@ -33,11 +34,19 @@ def main():
     parser.add_argument('--probability', type=float,
                         help='Probability of bit toggling')
     parser.add_argument('--data_size', type=int,
-                        help='Size of the data to generate (in bytes)')
+                        help='Size of the data to generate (in bytes)', required=True)
     parser.add_argument('--package_size', type=int,
-                        help='Size of the package data in range [5,7] (in bits)')
+                        help='Size of the package data in range [5,7] (in bits)', required=True)
     parser.add_argument('--parity_bits', type=int,
-                        help='Amount of parity bits')
+                        help='Amount of parity bits', required=True)
+    parser.add_argument('--connection-type', type=int,
+                        help='''\
+                            Connection type for the ARQ system
+
+                            Possible values :
+                             - 1 : Bidirectional noisy connection
+                             - 2 : Bidirectional binary symmetric noisy connection
+                            ''', required=True)
 
     # Parse the arguments
     args = parser.parse_args()
@@ -45,8 +54,14 @@ def main():
     # Establish the connection
     transmitter = Transceiver()
     receiver = Transceiver()
-    connection = BidirectionalNoisyConnection(
-        receiver, transmitter, args.probability)
+
+    # Create the desired connection
+    if (args.connection_type == 1):
+        connection = BidirectionalNoisyConnection(
+            receiver, transmitter, args.probability)
+    elif (args.connection_type == 2):
+        connection = BinarySymmetricConnection(
+            receiver, transmitter, args.probability)
 
     # Create the transmitters
     codec = Codec(args.package_size, args.parity_bits)
